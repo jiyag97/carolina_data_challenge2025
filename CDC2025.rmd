@@ -1,0 +1,286 @@
+---
+title: "CDC"
+author: "Jiya Gupta"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("tidyverse")
+library(tidyverse)
+#install.packages("dplyr")
+library(dplyr)
+#install.packages("readxl") 
+library(readxl)
+#install.packages("scales")
+library(scales)
+```
+
+```{r}
+real_value <- read_excel("/Users/jiyagupta/Downloads/Business CDC.xlsx", sheet = "Table 1")
+real_value1 <- real_value[-c(1:4), ]
+real_value1 <- real_value1[,-1]
+real_value1 <- real_value1[-c(4,5,6), ]
+real_value2 <- real_value1[c(1,4,8,9,10,32,33,38,47,52,63,72,79,86,88,93),] # cleaned table with only main industries
+
+real_gross <- read_excel("/Users/jiyagupta/Downloads/Business CDC.xlsx", sheet = "Table 4")
+real_gross1 <- real_gross[-c(1:4), ]
+real_gross1 <- real_gross1[,-1]
+real_gross2 <- real_gross1[c(1,7,11,12,13,35,36,41,50,55,66,75,82,89,91,96),] # cleaned table with only main industries
+
+employment <- read_excel("/Users/jiyagupta/Downloads/Business CDC.xlsx", sheet = "Table 7")
+employment1 <- employment[-c(1:4), ]
+employment1 <- employment1[,-1]
+employment1 <- employment1[-c(3,4,5), ]
+employment1 <- employment1[c(3,7,9,31,32,37,46,51,52,71,78,85),]
+
+compensation <- read_excel("/Users/jiyagupta/Downloads/Business CDC.xlsx", sheet = "Table 8")
+compensation1 <- compensation[-c(1:4), ]
+compensation1 <- compensation1[,-1]
+compensation1 <- compensation1[-c(3,4,5), ]
+compensation1 <- compensation1[c(3,7,9,31,32,37,46,51,52,71,78,85),]
+```
+
+```{r}
+# editing column names
+colnames(real_value2) <- as.character(unlist(real_value2[1, ])) 
+real_value2 <- real_value2[-1, ]                              
+colnames(real_value2)[1] <- "Industry"
+
+colnames(real_gross2) <- as.character(unlist(real_gross2[1, ])) 
+real_gross2 <- real_gross2[-1, ]                              
+colnames(real_gross2)[1] <- "Industry"
+
+colnames(employment1) <- as.character(unlist(employment1[1, ])) 
+employment1 <- employment1[-1, ]                              
+colnames(employment1)[1] <- "Industry"
+colnames(employment1)[-1] <- 2012:2023
+
+colnames(compensation1) <- as.character(unlist(compensation1[1, ])) 
+compensation1 <- compensation1[-1, ]                              
+colnames(compensation1)[1] <- "Industry"
+colnames(compensation1)[-1] <- 2012:2023
+```
+
+
+```{r}
+# manipulating tables so we can make a ggplot with trendlines
+value <- real_value2 %>%
+  pivot_longer(
+    cols = -Industry,
+    names_to = "Year",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Year = as.integer(Year),      
+    Value = as.numeric(Value)    
+  )
+
+value_big <- value %>%
+  group_by(Industry) %>%
+  filter(max(Value, na.rm = TRUE) > 5000)
+
+value_small <- value %>%
+  group_by(Industry) %>%
+  filter(max(Value, na.rm = TRUE) < 5000)
+
+gross <- real_gross2 %>%
+  pivot_longer(
+    cols = -Industry,
+    names_to = "Year",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Year = as.integer(Year),      
+    Value = as.numeric(Value)    
+  )
+
+gross_big <- gross %>%
+  group_by(Industry) %>%
+  filter(max(Value, na.rm = TRUE) > 5000)
+
+gross_small <- gross %>%
+  group_by(Industry) %>%
+  filter(max(Value, na.rm = TRUE) < 5000)
+
+employ <- employment1 %>%
+  pivot_longer(
+    cols = -Industry,
+    names_to = "Year",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Year = as.integer(Year),      
+    Value = as.numeric(Value)    
+  )
+
+compen <- compensation1 %>%
+  pivot_longer(
+    cols = -Industry,
+    names_to = "Year",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Year = as.integer(Year),      
+    Value = as.numeric(Value)    
+  )
+
+```
+
+
+```{r}
+# real value graphs, splitting big from small industries to make graphs clearer
+ggplot(value, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Real Value Added by Industry (2012–2023)",
+    x = "Year",
+    y = "Millions of chained 2017 dollars"
+  ) +
+  theme_minimal()
+
+ggplot(value_big, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Real Value Added by (Larger) Industry (2012–2023)",
+    x = "Year",
+    y = "Millions of chained 2017 dollars"
+  ) +
+  theme_minimal()
+
+ggplot(value_small, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Real Value Added by (Smaller) Industry (2012–2023)",
+    x = "Year",
+    y = "Millions of chained 2017 dollars"
+  ) +
+  theme_minimal()
+
+# gross product graphs, splitting big from small industries to make graphs clearer
+ggplot(gross, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Real Gross Added by Industry (2012–2023)",
+    x = "Year",
+    y = "Millions of chained 2017 dollars"
+  ) +
+  theme_minimal()
+
+ggplot(gross_big, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Real Gross Added by (Larger) Industry (2012–2023)",
+    x = "Year",
+    y = "Millions of chained 2017 dollars"
+  ) +
+  theme_minimal()
+
+ggplot(gross_small, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Real Gross Added by (Smaller) Industry (2012–2023)",
+    x = "Year",
+    y = "Millions of chained 2017 dollars"
+  ) +
+  theme_minimal()
+
+# employment graphs
+ggplot(employ, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Employment by Industry (2012–2023)",
+    x = "Year",
+    y = "Employees (in thousands)"
+  ) +
+  theme_minimal()
+
+# compensation graphs
+ggplot(compen, aes(x = Year, y = Value, color = Industry)) +
+  geom_line(size = 1) +
+  labs(
+    title = "Compensation by Industry (2012–2023)",
+    x = "Year",
+    y = "Compensation (millions of current $)"
+  ) +
+  theme_minimal()
+```
+
+
+```{r}
+# map long -> short once; reuse for all plots
+short_labels <- c(
+  "Federal" = "Federal",
+  "Professional and business services" = "Prof/Bus Services",
+  "Educational services, health care, and social assistance" = "Education & Health",
+  "State and local" = "State/Local",
+  "Manufacturing" = "Manufacturing",
+  "Transportation and warehousing" = "Transport & Warehousing",
+  "Finance, insurance, real estate, rental, and leasing" = "Finance & Real Estate",
+  "Other services, except government" = "Other Services",
+  "Utilities" = "Utilities",
+  "Mining" = "Mining",
+  "Arts, entertainment, recreation, accommodation, and food services" = "Arts & Entertainment",
+  "Retail trade" = "Retail",
+  "Construction" = "Construction",
+  "Wholesale trade" = "Wholesale",
+  "Information" = "Information"
+)
+
+rva <- value %>% dplyr::rename(RVA = Value)
+rgo <- gross %>% dplyr::rename(RGO = Value)
+
+dr <- rva %>%
+  tidyr::pivot_wider(names_from = Year, values_from = RVA) %>%
+  mutate(`Dip 2019–2020`   = (`2020`/`2019` - 1) * 100,
+         `Rebound 2020–2023` = (`2023`/`2020` - 1) * 100) %>%
+  select(Industry, `Dip 2019–2020`, `Rebound 2020–2023`) %>%
+  tidyr::pivot_longer(-Industry, names_to = "Metric", values_to = "Pct")
+
+ggplot(dr, aes(reorder(Industry, Pct), Pct, fill = Metric)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  # shorten the industry labels (Industry is the x aesthetic before flip)
+  scale_x_discrete(labels = function(x) dplyr::recode(x, !!!short_labels, .default = x)) +
+  scale_y_continuous(labels = percent_format(scale = 1)) +
+  labs(title = "COVID Dip & Rebound – Real Value Added", x = NULL, y = "Percent") +
+  theme(axis.text.y = element_text(size = 9))   # optional: slightly smaller text
+
+short_labels <- c(
+  "Federal" = "Federal",
+  "Professional and business services" = "Prof/Bus Services",
+  "Educational services, health care, and social assistance" = "Education & Health",
+  "State and local" = "State/Local",
+  "Manufacturing" = "Manufacturing",
+  "Transportation and warehousing" = "Transport & Warehousing",
+  "Finance, insurance, real estate, rental, and leasing" = "Finance & Real Estate",
+  "Other services, except government" = "Other Services",
+  "Utilities" = "Utilities",
+  "Mining" = "Mining",
+  "Arts, entertainment, recreation, accommodation, and food services" = "Arts & Entertainment",
+  "Retail trade" = "Retail",
+  "Construction" = "Construction",
+  "Wholesale trade" = "Wholesale",
+  "Information" = "Information"
+)
+
+
+rva_19_23 <- rva %>%
+  filter(Year %in% c(2019, 2023)) %>%
+  tidyr::pivot_wider(names_from = Year, values_from = RVA)
+
+ggplot(rva_19_23, aes(x = `2019`, xend = `2023`,
+                      y = reorder(Industry, `2023` - `2019`))) +
+  geom_segment(linewidth = 1, color = "grey60") +
+  geom_point(aes(x = `2019`), size = 2, color = "#999") +
+  geom_point(aes(x = `2023`), size = 3, color = "#2C7FB8") +
+  labs(title = "2019 vs 2023 — Real Value Added",
+       x = "Millions (2017$)", y = NULL) +
+  # 2) Apply shorter labels
+  scale_y_discrete(labels = function(x) dplyr::recode(x, !!!short_labels, .default = x)) +
+  # 3) (Optional) slightly smaller y-axis text
+  theme(axis.text.y = element_text(size = 9))
+```
+
+
